@@ -1,0 +1,49 @@
+name: Deploy to Home Server
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install backend dependencies
+      working-directory: ./backend
+      run: npm ci
+
+    - name: Build backend
+      working-directory: ./backend
+      run: npm run build
+
+    - name: Deploy to home server
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: 172.28.108.247
+        username: jacob
+        key: ${{ secrets.HOME_SERVER_SSH_KEY }}
+        script: |
+          cd /var/www/projects/email-tracker
+          git pull origin main
+          cd backend
+          npm ci --production
+          npm run build
+          pm2 restart email-tracker || pm2 start dist/index.js --name email-tracker --env production --port 3001
+          pm2 save
+
+    - name: Setup Cloudflare Tunnel
+      run: |
+        echo "Cloudflare tunnel configuration will be updated"
+        echo "Visit dash.cloudflare.com to configure email-tracker.brasilito.org"
