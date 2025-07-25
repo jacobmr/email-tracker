@@ -19,6 +19,7 @@ jobs:
       with:
         node-version: '18'
         cache: 'npm'
+        cache-dependency-path: 'backend/package-lock.json'
 
     - name: Install backend dependencies
       working-directory: ./backend
@@ -35,15 +36,22 @@ jobs:
         username: jacob
         key: ${{ secrets.HOME_SERVER_SSH_KEY }}
         script: |
+          echo "=== Starting deployment ==="
           cd /var/www/projects/email-tracker
+          echo "Pulling latest changes from GitHub..."
           git pull origin main
+          
+          echo "Installing dependencies..."
           cd backend
           npm ci --production
-          npm run build
-          pm2 restart email-tracker || pm2 start dist/index.js --name email-tracker --env production --port 3001
+          
+          echo "Restarting PM2 process..."
+          pm2 delete email-tracker 2> /dev/null || true
+          pm2 start src/index.js --name email-tracker --env production --port 3001
           pm2 save
+          
+          echo "=== Deployment completed successfully ==="
 
-    - name: Setup Cloudflare Tunnel
+    - name: Verify deployment
       run: |
-        echo "Cloudflare tunnel configuration will be updated"
-        echo "Visit dash.cloudflare.com to configure email-tracker.brasilito.org"
+        echo "Deployment completed. Check the dashboard at https://e.brasilito.org/dashboard"
