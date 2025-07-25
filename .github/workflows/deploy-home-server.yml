@@ -3,76 +3,60 @@ name: Deploy to Home Server
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
+  deploy:
+    # Use self-hosted runner with the label 'self-hosted'
+    runs-on: [self-hosted, linux]
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
       with:
         node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: 'backend/package-lock.json'
-
-    - name: Install backend dependencies
+    
+    - name: Install dependencies
       working-directory: ./backend
       run: npm ci
-
+    
     - name: Build backend
       working-directory: ./backend
       run: npm run build
 
-    - name: Verify SSH Key
+    - name: Deploy application
       run: |
-        echo "=== Verifying SSH Key ==="
-        if [ -z "${{ secrets.HOME_SERVER_SSH_KEY }}" ]; then
-          echo "::error::SSH key is empty or not set in GitHub Secrets"
-          exit 1
+        set -e
+        echo "=== Starting deployment ==="
+        
+        # Create directory if it doesn't exist
+        sudo mkdir -p /var/www/projects/email-tracker
+        sudo chown -R $USER:$USER /var/www/projects/email-tracker
+        cd /var/www/projects/email-tracker
+        
+        # Clone or update the repository
+        if [ -d .git ]; then
+          echo "Updating repository..."
+          git fetch origin
+          git reset --hard origin/main
         else
-          echo "SSH key is available in secrets"
+          echo "Cloning repository..."
+          git clone https://github.com/jacobmr/email-tracker.git .
         fi
         
-    - name: Deploy to home server
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: 172.28.108.247
-        username: jacob
-        key: ${{ secrets.HOME_SERVER_SSH_KEY }}
-        script: |
-          set -e
-          echo "=== Starting deployment ==="
-          
-          # Create directory if it doesn't exist
-          mkdir -p /var/www/projects/email-tracker
-          cd /var/www/projects/email-tracker
-          
-          # Clone or update the repository
-          if [ -d .git ]; then
-            echo "Updating repository..."
-            git fetch origin
-            git reset --hard origin/main
-          else
-            echo "Cloning repository..."
-            git clone https://github.com/jacobmr/email-tracker.git .
-          fi
-          
-          echo "Installing dependencies..."
-          cd backend
-          npm ci --production
-          
-          echo "Restarting PM2 process..."
-          pm2 delete email-tracker 2> /dev/null || true
-          NODE_ENV=production pm2 start src/index.js --name email-tracker --env production --port 3001
-          pm2 save
-          
-          echo "=== Deployment completed successfully ==="
+        echo "Installing dependencies..."
+        cd backend
+        npm ci --production
+        
+        echo "Restarting PM2 process..."
+        pm2 delete email-tracker 2> /dev/null || true
+        NODE_ENV=production pm2 start src/index.js --name email-tracker --env production --port 3001
+        pm2 save
+        
+        echo "=== Deployment completed successfully ==="
 
     - name: Verify deployment
       run: |
