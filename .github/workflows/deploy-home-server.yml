@@ -29,6 +29,17 @@ jobs:
       working-directory: ./backend
       run: npm run build
 
+    - name: Create SSH directory
+      run: |
+        mkdir -p ~/.ssh
+        chmod 700 ~/.ssh
+        echo "${{ secrets.HOME_SERVER_SSH_KEY }}" > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+        
+    - name: Add host to known hosts
+      run: |
+        ssh-keyscan -H 172.28.108.247 >> ~/.ssh/known_hosts
+        
     - name: Deploy to home server
       uses: appleboy/ssh-action@v1.0.0
       with:
@@ -36,10 +47,22 @@ jobs:
         username: jacob
         key: ${{ secrets.HOME_SERVER_SSH_KEY }}
         script: |
+          set -e
           echo "=== Starting deployment ==="
+          
+          # Create directory if it doesn't exist
+          mkdir -p /var/www/projects/email-tracker
           cd /var/www/projects/email-tracker
-          echo "Pulling latest changes from GitHub..."
-          git pull origin main
+          
+          # Clone or update the repository
+          if [ -d .git ]; then
+            echo "Updating repository..."
+            git fetch origin
+            git reset --hard origin/main
+          else
+            echo "Cloning repository..."
+            git clone https://github.com/jacobmr/email-tracker.git .
+          fi
           
           echo "Installing dependencies..."
           cd backend
@@ -47,7 +70,7 @@ jobs:
           
           echo "Restarting PM2 process..."
           pm2 delete email-tracker 2> /dev/null || true
-          pm2 start src/index.js --name email-tracker --env production --port 3001
+          NODE_ENV=production pm2 start src/index.js --name email-tracker --env production --port 3001
           pm2 save
           
           echo "=== Deployment completed successfully ==="
