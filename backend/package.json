@@ -8,14 +8,20 @@
     "dev": "nodemon src/index.js",
     "build": "echo 'No build needed for JS'",
     "start": "node src/index.js",
-    "start:prod": "NODE_ENV=production node src/index.js"
+    "start:prod": "NODE_ENV=production node src/index.js",
+    "migrate": "node scripts/run-migrations.js",
+    "migrate:prod": "NODE_ENV=production node scripts/run-migrations.js",
+    "setup:db": "node scripts/setup-db.js",
+    "setup:db:prod": "NODE_ENV=production node scripts/setup-db.js"
   },
   "dependencies": {
     "compression": "^1.7.4",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
-    "helmet": "^7.0.0"
+    "helmet": "^7.0.0",
+    "pg": "^8.11.0",
+    "pg-format": "^1.0.4"
   },
   "devDependencies": {
     "@types/node": "^24.1.0",

@@ -45,7 +45,7 @@
                                 </div>
                                 <div>
                                     <p class="text-gray-900 font-medium">Download the Extension</p>
-                                    <p class="text-gray-600 text-sm">Click the button below to install from Chrome Web Store</p>
+                                    <p class="text-gray-600 text-sm">Click the button below to download the extension ZIP file</p>
                                 </div>
                             </div>
                             
@@ -54,8 +54,12 @@
                                     <span class="text-blue-600 font-bold">2</span>
                                 </div>
                                 <div>
-                                    <p class="text-gray-900 font-medium">Open Gmail</p>
-                                    <p class="text-gray-600 text-sm">Compose a new email as usual</p>
+                                    <p class="text-gray-900 font-medium">Install the Extension</p>
+                                    <ol class="list-decimal list-inside text-gray-600 text-sm space-y-1 mt-1">
+                                        <li>Open Chrome and go to <code class="bg-gray-100 px-1 rounded">chrome://extensions/</code></li>
+                                        <li>Enable "Developer mode" (toggle in the top right)</li>
+                                        <li>Click "Load unpacked" and select the extracted extension folder</li>
+                                    </ol>
                                 </div>
                             </div>
                             
@@ -64,20 +68,26 @@
                                     <span class="text-blue-600 font-bold">3</span>
                                 </div>
                                 <div>
-                                    <p class="text-gray-900 font-medium">Enable Tracking</p>
-                                    <p class="text-gray-600 text-sm">Click the tracking button to enable email tracking</p>
+                                    <p class="text-gray-900 font-medium">Use the Extension</p>
+                                    <p class="text-gray-600 text-sm">Open Gmail, compose a new email, and click the tracking button to enable email tracking</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Download Button -->
-                    <div class="text-center">
-                        <a href="https://chrome.google.com/webstore/detail/email-tracker-extension" 
-                           class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                            <i class="fab fa-chrome mr-2"></i>
-                            Install Chrome Extension
-                        </a>
+                    <div class="text-center space-y-4">
+                        <div>
+                            <a href="/extension/email-tracker-extension.zip" 
+                               class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                               download>
+                                <i class="fas fa-download mr-2"></i>
+                                Download Extension
+                            </a>
+                        </div>
+                        <div class="text-sm text-gray-600">
+                            <p>After downloading, extract the ZIP file and follow the instructions below to install manually.</p>
+                        </div>
                     </div>
 
                     <!-- Features -->

@@ -14,25 +14,40 @@ class EmailTrackerDashboard {
     async loadStats() {
         try {
             const response = await fetch(`${this.apiBase}/stats`);
+            if (!response.ok) {
+                throw new Error('Failed to load statistics');
+            }
             const stats = await response.json();
             
-            document.getElementById('total-emails').textContent = stats.total;
-            document.getElementById('opened-emails').textContent = stats.opened;
-            document.getElementById('not-opened-emails').textContent = stats.notOpened;
-            document.getElementById('open-rate').textContent = `${stats.openRate}%`;
+            // Handle empty or missing data
+            document.getElementById('total-emails').textContent = stats?.total || '0';
+            document.getElementById('opened-emails').textContent = stats?.opened || '0';
+            document.getElementById('not-opened-emails').textContent = stats?.notOpened || '0';
+            document.getElementById('open-rate').textContent = stats?.openRate ? `${stats.openRate}%` : '0%';
         } catch (error) {
             console.error('Error loading stats:', error);
+            // Show zeros if there's an error
+            document.getElementById('total-emails').textContent = '0';
+            document.getElementById('opened-emails').textContent = '0';
+            document.getElementById('not-opened-emails').textContent = '0';
+            document.getElementById('open-rate').textContent = '0%';
         }
     }
 
     async loadRecentEmails() {
         try {
             const response = await fetch(`${this.apiBase}/emails/recent`);
+            if (!response.ok) {
+                throw new Error('Failed to load recent emails');
+            }
             const emails = await response.json();
             
-            this.renderEmails(emails);
+            this.renderEmails(emails || []);
         } catch (error) {
             console.error('Error loading emails:', error);
+            // Show empty state on error
+            const tbody = document.getElementById('email-list');
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">Unable to load emails. Please try again later.</td></tr>';
         }
     }
 
