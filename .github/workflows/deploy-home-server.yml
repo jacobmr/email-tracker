@@ -39,9 +39,17 @@ jobs:
         ssh-keyscan -H 172.28.108.247 > ~/.ssh/known_hosts 2>/dev/null
         chmod 600 ~/.ssh/known_hosts
         
-        # Save the private key
-        echo "${{ secrets.HOME_SERVER_SSH_KEY }}" > ~/.ssh/deploy_key
+        # Save the private key with proper formatting
+        cat << 'EOF' > ~/.ssh/deploy_key
+        ${{ secrets.HOME_SERVER_SSH_KEY }}
+        EOF
         chmod 600 ~/.ssh/deploy_key
+        
+        # Verify the key was saved correctly (debug)
+        echo "=== Key file content (first 10 chars) ==="
+        head -c 10 ~/.ssh/deploy_key || true
+        echo "..."
+        echo "======================================="
         
     - name: Deploy to home server
       uses: appleboy/ssh-action@v1.0.0
