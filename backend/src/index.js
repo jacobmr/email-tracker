@@ -99,7 +99,11 @@ app.get('/api/stats', (req, res) => {
 });
 
 // Serve static files
-app.use(express.static(path.join(__dirname, '../frontend')));
+app.use(express.static(path.join(__dirname, '../../frontend')));
+
+// Serve dashboard files
+app.use('/dashboard', express.static(path.join(__dirname, '../../frontend')));
+app.use('/extension', express.static(path.join(__dirname, '../../frontend')));
 
 // Error handling
 app.use((err, req, res, next) => {
