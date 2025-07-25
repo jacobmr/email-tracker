@@ -2,6 +2,8 @@ tunnel: 6b8d6c2e-70cc-4bcc-8921-f23ab29060b4
 credentials-file: /home/jacob/.cloudflared/6b8d6c2e-70cc-4bcc-8921-f23ab29060b4.json
 
 ingress:
+  - hostname: track.brasilito.org
+    service: http://localhost:3001
   - hostname: e.brasilito.org
     service: http://localhost:3001
   - hostname: frigate.brasilito.org
