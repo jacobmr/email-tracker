@@ -4,23 +4,70 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
-// Database configuration
-const dbConfig = {
-  user: process.env.DB_USER || 'postgres',
+// Database configuration for initial connection (using postgres superuser)
+const adminConfig = {
+  user: 'postgres',
   host: process.env.DB_HOST || 'localhost',
-  password: process.env.DB_PASSWORD || 'yourpassword',
+  password: 'your_secure_password', // This should match the password set for the postgres user
   port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'postgres' // Connect to the specified database or default to 'postgres'
+  database: 'postgres' // Connect to default postgres database first
+};
+
+// Application database configuration
+const dbConfig = {
+  user: process.env.DB_USER || 'email_tracker',
+  host: process.env.DB_HOST || 'localhost',
+  password: process.env.DB_PASSWORD || 'email_tracker_password',
+  port: process.env.DB_PORT || 5432,
+  database: process.env.DB_NAME || 'email_tracker'
 };
 
 async function setupDatabase() {
-  const pool = new Pool(dbConfig);
-  const client = await pool.connect().catch(err => {
-    console.error('❌ Failed to connect to PostgreSQL server');
-    console.error('Please make sure PostgreSQL is running and check your .env configuration');
+  // First connect as postgres user to create the database if it doesn't exist
+  const adminPool = new Pool(adminConfig);
+  const adminClient = await adminPool.connect().catch(err => {
+    console.error('❌ Failed to connect to PostgreSQL server as postgres user');
+    console.error('Please make sure PostgreSQL is running and the postgres user password is correct');
     console.error('Error:', err.message);
     process.exit(1);
   });
+
+  try {
+    console.log('✅ Connected to PostgreSQL server as postgres user');
+    
+    // Check if database exists
+    const dbName = process.env.DB_NAME || 'email_tracker';
+    const dbCheck = await adminClient.query(
+      'SELECT 1 FROM pg_database WHERE datname = $1', 
+      [dbName]
+    );
+
+    if (dbCheck.rows.length === 0) {
+      console.log(`🔄 Creating database: ${dbName}`);
+      // Create the database with the email_tracker user as owner
+      await adminClient.query(`CREATE DATABASE ${dbName} OWNER email_tracker`);
+      console.log(`✅ Created database: ${dbName}`);
+    } else {
+      console.log(`✅ Database exists: ${dbName}`);
+    }
+  } catch (err) {
+    console.error('❌ Error setting up database:', err.message);
+    process.exit(1);
+  } finally {
+    await adminClient.release();
+    await adminPool.end();
+  }
+
+  // Now connect as the application user to run migrations
+  const pool = new Pool(dbConfig);
+  const client = await pool.connect().catch(err => {
+    console.error('❌ Failed to connect to PostgreSQL server as application user');
+    console.error('Please check the database user credentials in your .env file');
+    console.error('Error:', err.message);
+    process.exit(1);
+  });
+  
+  console.log(`✅ Connected to database ${dbConfig.database} as user ${dbConfig.user}`);
 
   try {
     console.log('✅ Connected to PostgreSQL server');
