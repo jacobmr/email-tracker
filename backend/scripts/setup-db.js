@@ -10,7 +10,7 @@ const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
   password: process.env.DB_PASSWORD || 'yourpassword',
   port: process.env.DB_PORT || 5432,
-  database: 'postgres' // Connect to default postgres database first
+  database: process.env.DB_NAME || 'postgres' // Connect to the specified database or default to 'postgres'
 };
 
 async function setupDatabase() {
