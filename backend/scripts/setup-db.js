@@ -4,16 +4,7 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
-// Database configuration for initial connection (using postgres superuser)
-const adminConfig = {
-  user: 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  password: 'your_secure_password', // This should match the password set for the postgres user
-  port: process.env.DB_PORT || 5432,
-  database: 'postgres' // Connect to default postgres database first
-};
-
-// Application database configuration
+// Database configuration for the application
 const dbConfig = {
   user: process.env.DB_USER || 'email_tracker',
   host: process.env.DB_HOST || 'localhost',
@@ -23,51 +14,43 @@ const dbConfig = {
 };
 
 async function setupDatabase() {
-  // First connect as postgres user to create the database if it doesn't exist
-  const adminPool = new Pool(adminConfig);
-  const adminClient = await adminPool.connect().catch(err => {
-    console.error('❌ Failed to connect to PostgreSQL server as postgres user');
-    console.error('Please make sure PostgreSQL is running and the postgres user password is correct');
-    console.error('Error:', err.message);
-    process.exit(1);
-  });
-
-  try {
-    console.log('✅ Connected to PostgreSQL server as postgres user');
-    
-    // Check if database exists
-    const dbName = process.env.DB_NAME || 'email_tracker';
-    const dbCheck = await adminClient.query(
-      'SELECT 1 FROM pg_database WHERE datname = $1', 
-      [dbName]
-    );
-
-    if (dbCheck.rows.length === 0) {
-      console.log(`🔄 Creating database: ${dbName}`);
-      // Create the database with the email_tracker user as owner
-      await adminClient.query(`CREATE DATABASE ${dbName} OWNER email_tracker`);
-      console.log(`✅ Created database: ${dbName}`);
-    } else {
-      console.log(`✅ Database exists: ${dbName}`);
-    }
-  } catch (err) {
-    console.error('❌ Error setting up database:', err.message);
-    process.exit(1);
-  } finally {
-    await adminClient.release();
-    await adminPool.end();
-  }
-
-  // Now connect as the application user to run migrations
-  const pool = new Pool(dbConfig);
-  const client = await pool.connect().catch(err => {
-    console.error('❌ Failed to connect to PostgreSQL server as application user');
-    console.error('Please check the database user credentials in your .env file');
-    console.error('Error:', err.message);
-    process.exit(1);
-  });
+  const dbName = process.env.DB_NAME || 'email_tracker';
   
-  console.log(`✅ Connected to database ${dbConfig.database} as user ${dbConfig.user}`);
+  // First, try to connect to the database directly
+  let pool = new Pool(dbConfig);
+  let client;
+  
+  try {
+    client = await pool.connect();
+    console.log(`✅ Successfully connected to database: ${dbName}`);
+  } catch (err) {
+    if (err.code === '3D000') { // Database doesn't exist
+      console.log(`🔄 Database ${dbName} does not exist. Creating it now...`);
+      
+      // Create the database using the postgres system user
+      try {
+        // This assumes the script is running as the postgres user or has sudo access
+        const createDbCmd = `sudo -u postgres createdb -O email_tracker ${dbName}`;
+        const { execSync } = require('child_process');
+        execSync(createDbCmd, { stdio: 'inherit' });
+        console.log(`✅ Created database: ${dbName}`);
+        
+        // Reconnect to the new database
+        pool = new Pool(dbConfig);
+        client = await pool.connect();
+      } catch (createErr) {
+        console.error('❌ Failed to create database:', createErr.message);
+        console.error('Please create the database manually with:');
+        console.error(`  sudo -u postgres createdb -O email_tracker ${dbName}`);
+        process.exit(1);
+      }
+    } else {
+      console.error('❌ Failed to connect to PostgreSQL server');
+      console.error('Please check your database configuration and ensure it is running');
+      console.error('Error:', err.message);
+      process.exit(1);
+    }
+  }
 
   try {
     console.log('✅ Connected to PostgreSQL server');
