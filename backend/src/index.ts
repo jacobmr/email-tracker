@@ -2,7 +2,14 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
-import { trackingRouter } from './routes/tracking';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Import the tracking router
+import { router as trackingRouter } from './routes/tracking.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -25,17 +32,31 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Root route
-app.get('/', (req, res) => {
+// Serve static files from the frontend directory
+app.use(express.static(path.join(__dirname, '../../frontend')));
+
+// API Root route
+app.get('/api', (req, res) => {
   res.json({ 
     message: 'Email Tracker API',
     version: '1.0.0',
     endpoints: [
       '/api/track/pixel/:id',
       '/api/track/link/:id',
-      '/health'
+      '/health',
+      '/dashboard'
     ]
   });
+});
+
+// Serve dashboard.html as the main page
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../frontend/dashboard.html'));
+});
+
+// Serve extension page
+app.get('/extension', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../frontend/extension.html'));
 });
 
 // Error handling

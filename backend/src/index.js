@@ -3,13 +3,24 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const path = require('path');
-const trackingRouter = require('./routes/tracking');
+const fs = require('fs');
+
+// Resolve the absolute path to the frontend directory
+const frontendPath = path.join(__dirname, '../../frontend');
+
+// Check if frontend directory exists
+if (!fs.existsSync(frontendPath)) {
+  console.error('Frontend directory not found at:', frontendPath);
+  process.exit(1);
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false // Temporarily disable CSP for development
+}));
 app.use(compression());
 app.use(cors({
   origin: process.env.CORS_ORIGIN || '*',
@@ -18,9 +29,27 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health check endpoint
-app.get('/health', (req, res) => {
+// Serve static files from the frontend directory
+app.use(express.static(frontendPath));
+
+// API Routes
+app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Serve dashboard
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(frontendPath, 'dashboard.html'));
+});
+
+// Serve extension page
+app.get('/extension', (req, res) => {
+  res.sendFile(path.join(frontendPath, 'extension.html'));
+});
+
+// Redirect root to dashboard
+app.get('/', (req, res) => {
+  res.redirect('/dashboard');
 });
 
 // Tracking pixel endpoint (public - track.brasilito.org)
