@@ -29,16 +29,19 @@ jobs:
       working-directory: ./backend
       run: npm run build
 
-    - name: Create SSH directory
+    - name: Setup SSH
       run: |
+        # Create .ssh directory with proper permissions
         mkdir -p ~/.ssh
         chmod 700 ~/.ssh
+        
+        # Add the server's host key to known_hosts
+        ssh-keyscan -H 172.28.108.247 > ~/.ssh/known_hosts 2>/dev/null
+        chmod 600 ~/.ssh/known_hosts
+        
+        # Save the private key
         echo "${{ secrets.HOME_SERVER_SSH_KEY }}" > ~/.ssh/deploy_key
         chmod 600 ~/.ssh/deploy_key
-        
-    - name: Add host to known hosts
-      run: |
-        ssh-keyscan -H 172.28.108.247 >> ~/.ssh/known_hosts
         
     - name: Deploy to home server
       uses: appleboy/ssh-action@v1.0.0
