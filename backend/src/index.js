@@ -79,12 +79,12 @@ app.get('/api/emails/recent', (req, res) => {
 
 // Dashboard (protected - e.brasilito.org)
 app.get('/dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/dashboard.html'));
+  res.sendFile(path.join(__dirname, '../../frontend/dashboard.html'));
 });
 
 // Chrome extension page
 app.get('/extension', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/extension.html'));
+  res.sendFile(path.join(__dirname, '../../frontend/extension.html'));
 });
 
 // API endpoints for dashboard
