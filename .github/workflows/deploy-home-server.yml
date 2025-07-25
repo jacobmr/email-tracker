@@ -29,27 +29,15 @@ jobs:
       working-directory: ./backend
       run: npm run build
 
-    - name: Setup SSH
+    - name: Verify SSH Key
       run: |
-        # Create .ssh directory with proper permissions
-        mkdir -p ~/.ssh
-        chmod 700 ~/.ssh
-        
-        # Add the server's host key to known_hosts
-        ssh-keyscan -H 172.28.108.247 > ~/.ssh/known_hosts 2>/dev/null
-        chmod 600 ~/.ssh/known_hosts
-        
-        # Save the private key with proper formatting
-        cat << 'EOF' > ~/.ssh/deploy_key
-        ${{ secrets.HOME_SERVER_SSH_KEY }}
-        EOF
-        chmod 600 ~/.ssh/deploy_key
-        
-        # Verify the key was saved correctly (debug)
-        echo "=== Key file content (first 10 chars) ==="
-        head -c 10 ~/.ssh/deploy_key || true
-        echo "..."
-        echo "======================================="
+        echo "=== Verifying SSH Key ==="
+        if [ -z "${{ secrets.HOME_SERVER_SSH_KEY }}" ]; then
+          echo "::error::SSH key is empty or not set in GitHub Secrets"
+          exit 1
+        else
+          echo "SSH key is available in secrets"
+        fi
         
     - name: Deploy to home server
       uses: appleboy/ssh-action@v1.0.0
