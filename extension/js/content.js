@@ -3,6 +3,16 @@ console.log('Email Tracker content script loaded');
 
 // Configuration
 const API_BASE_URL = 'https://e.brasilito.org/api';
+const DEBUG = true; // Set to false in production
+
+function debugLog(...args) {
+  if (DEBUG) {
+    console.log('[Email Tracker]', ...args);
+  }
+}
+
+// Track if we've already set up listeners for a compose window
+const processedComposeWindows = new WeakSet();
 
 // Function to get the recipient's email from the compose window
 function getRecipientEmail(composeBox) {
@@ -136,26 +146,88 @@ function setupSendButtonListener() {
   }, true); // Use capture phase to catch the event before Gmail does
 }
 
-// Watch for new compose windows
-const observer = new MutationObserver((mutations) => {
-  mutations.forEach((mutation) => {
-    mutation.addedNodes.forEach((node) => {
-      // Check if this is a compose window
-      if (node.nodeType === 1 && node.getAttribute && 
-          (node.getAttribute('role') === 'dialog' || 
-           node.querySelector('[role="dialog"]'))) {
-        const composeBox = node.querySelector('[role="dialog"]');
-        if (composeBox) {
-          console.log('New compose window detected');
-          // Setup send button listener for this compose window
-          setupSendButtonListener();
+// Watch for Gmail's dynamic content loading
+function setupObservers() {
+  debugLog('Setting up observers');
+  
+  // Watch for new compose windows
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        // Check if this is a compose window
+        if (node.nodeType === 1 && node.getAttribute) {
+          // Check for compose window in various Gmail interfaces
+          const composeBox = node.querySelector && (
+            node.querySelector('[role="dialog"][aria-label*="Compose"]') ||
+            node.querySelector('[role="dialog"]')
+          );
+          
+          if (composeBox && !processedComposeWindows.has(composeBox)) {
+            processedComposeWindows.add(composeBox);
+            debugLog('New compose window detected', composeBox);
+            
+            // Setup send button listener for this compose window
+            setupSendButtonListener(composeBox);
+            
+            // Also watch for changes within the compose window
+            const composeObserver = new MutationObserver((mutations) => {
+              // Re-attach listeners if the compose window was recreated
+              if (!document.body.contains(composeBox)) {
+                processedComposeWindows.delete(composeBox);
+                composeObserver.disconnect();
+                return;
+              }
+            });
+            
+            composeObserver.observe(composeBox, {
+              childList: true,
+              subtree: true
+            });
+          }
         }
-      }
+      });
     });
   });
-});
+  
+  // Start observing the entire document
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+  
+  debugLog('Observers set up');
+  return observer;
+}
 
-// Start observing the document with the configured parameters
-observer.observe(document.body, { childList: true, subtree: true });
+// Initialize the extension
+function init() {
+  debugLog('Initializing Email Tracker');
+  
+  // Check if we're in Gmail
+  if (!window.location.href.includes('mail.google.com')) {
+    debugLog('Not in Gmail, skipping initialization');
+    return;
+  }
+  
+  // Wait for Gmail to load
+  if (document.readyState === 'loading') {
+    debugLog('Document still loading, waiting...');
+    document.addEventListener('DOMContentLoaded', setupObservers);
+  } else {
+    debugLog('Document ready, setting up observers');
+    setupObservers();
+  }
+  
+  // Listen for messages from the background script
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'PING') {
+      debugLog('Received ping from background script');
+      sendResponse({ status: 'pong' });
+    }
+  });
+  
+  debugLog('Email Tracker content script initialized');
+}
 
-console.log('Email Tracker content script initialized');
+// Start the extension
+init();

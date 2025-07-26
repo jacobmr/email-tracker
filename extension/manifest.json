@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Email Tracker",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Track email opens with invisible tracking pixels in Gmail",
   "permissions": [
     "storage",
@@ -25,9 +25,15 @@
   "content_scripts": [
     {
       "matches": ["https://mail.google.com/*"],
-      "js": ["js/content.js"]
+      "js": ["js/content.js"],
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ],
+  "web_accessible_resources": [{
+    "resources": ["*.js", "*.html", "*.css"],
+    "matches": ["https://mail.google.com/*"]
+  }],
   "background": {
     "service_worker": "js/background.js"
   },
