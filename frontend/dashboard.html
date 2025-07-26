@@ -18,10 +18,25 @@
                         <h1 class="text-2xl font-bold text-gray-900">Email Tracker</h1>
                     </div>
                     <div class="flex items-center space-x-4">
-                        <a href="https://chrome.google.com/webstore/detail/email-tracker-extension" 
-                           class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition">
-                            <i class="fab fa-chrome mr-2"></i>Install Chrome Extension
+                        <a href="/email-tracker-extension.zip" 
+                           class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
+                           download="email-tracker-extension.zip">
+                            <i class="fab fa-chrome mr-2"></i>Download Chrome Extension
                         </a>
+                        <div class="relative group">
+                            <button class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-info-circle text-lg"></i>
+                            </button>
+                            <div class="hidden group-hover:block absolute right-0 mt-2 w-64 bg-white shadow-lg rounded-md p-4 z-10">
+                                <h3 class="font-bold mb-2">Installation Instructions:</h3>
+                                <ol class="text-sm text-gray-700 list-decimal pl-5 space-y-1">
+                                    <li>Download and unzip the extension</li>
+                                    <li>Go to <code class="bg-gray-100 px-1 rounded">chrome://extensions/</code></li>
+                                    <li>Enable "Developer mode" (top right)</li>
+                                    <li>Click "Load unpacked" and select the unzipped folder</li>
+                                </ol>
+                            </div>
+                        </div>
                         <button class="text-gray-500 hover:text-gray-700">
                             <i class="fas fa-cog"></i>
                         </button>

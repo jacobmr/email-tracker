@@ -178,9 +178,27 @@ app.get('/extension', (req, res) => {
   res.sendFile(path.join(__dirname, '../../frontend/extension.html'));
 });
 
-// API endpoint to send an email
-app.post('/api/emails/send', async (req, res) => {
-  const { subject, recipient, content } = req.body;
+// Serve extension ZIP file
+app.get('/email-tracker-extension.zip', (req, res) => {
+  const zipPath = path.join(__dirname, '../../email-tracker-extension.zip');
+  
+  // Check if file exists
+  if (fs.existsSync(zipPath)) {
+    res.download(zipPath, 'email-tracker-extension.zip', (err) => {
+      if (err) {
+        console.error('Error sending file:', err);
+        res.status(500).send('Error downloading file');
+      }
+    });
+  } else {
+    console.error('Extension ZIP file not found at:', zipPath);
+    res.status(404).send('Extension not found');
+  }
+});
+
+// API endpoint to generate a tracking pixel for an email
+app.post('/api/emails/track', async (req, res) => {
+  const { subject, recipient, content = '' } = req.body;
   
   if (!subject || !recipient) {
     return res.status(400).json({ error: 'Subject and recipient are required' });
@@ -193,29 +211,34 @@ app.post('/api/emails/send', async (req, res) => {
     // Insert the email into the database
     const result = await db.query(
       `INSERT INTO emails 
-       (id, subject, recipient, content, sent_at)
-       VALUES ($1, $2, $3, $4, $5)
+       (id, subject, recipient, content, sent_at, opened, opened_at)
+       VALUES ($1, $2, $3, $4, $5, false, null)
        RETURNING *`,
-      [emailId, subject, recipient, content || '', new Date()]
+      [emailId, subject, recipient, content, new Date()]
     );
     
     // Generate tracking pixel URL
     const trackingPixelUrl = `https://track.brasilito.org/api/track/pixel/${emailId}?to=${encodeURIComponent(recipient)}`;
     
-    // In a real implementation, you would send the email here using a service like SendGrid, Mailgun, etc.
-    console.log(`📧 Email sent to ${recipient} with ID ${emailId}`);
-    console.log(`📊 Tracking pixel: ${trackingPixelUrl}`);
+    console.log(`📧 Tracking initialized for email to ${recipient} with ID ${emailId}`);
+    console.log(`📊 Tracking pixel URL: ${trackingPixelUrl}`);
     
     res.status(201).json({
+      success: true,
       id: emailId,
       subject,
       recipient,
       sentAt: new Date().toISOString(),
-      trackingPixelUrl
+      trackingPixelUrl,
+      message: 'Copy the trackingPixelUrl and add it as an image in your email to track opens.'
     });
   } catch (error) {
-    console.error('Error sending email:', error);
-    res.status(500).json({ error: 'Failed to send email' });
+    console.error('Error initializing email tracking:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to initialize email tracking',
+      details: error.message 
+    });
   }
 });
 
